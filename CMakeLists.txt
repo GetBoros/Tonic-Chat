@@ -21,5 +21,6 @@ set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
 #-------------------------------------------------------------------------------------------------------------
 add_subdirectory(cmet)  # dll
 add_subdirectory(dexample)  # dll
-add_subdirectory(ALauncher)  # exe
+add_subdirectory(dlibtmic)  # dll
+add_subdirectory(ALauncher)  # exe || Need copy all .dll`s to those .exe, logic in CMakeLists.txt ALauncher folder
 #-------------------------------------------------------------------------------------------------------------
