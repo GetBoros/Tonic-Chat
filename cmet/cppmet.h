@@ -3,9 +3,9 @@
 //------------------------------------------------------------------------------------------------------------
 #ifdef _WIN32
   #ifdef CMET_EXPORTS
-    #define CMET_API __declspec(dllexport)   // при сборке DLL
+    #define CMET_API __declspec(dllexport)
   #else
-    #define CMET_API __declspec(dllimport)   // при использовании DLL
+    #define CMET_API __declspec(dllimport)
   #endif
 #else
   #define CMET_API
