@@ -8,7 +8,7 @@ module;
 
 #pragma comment(lib, "ws2_32.lib")
 //------------------------------------------------------------------------------------------------------------
-export module Tonic.Chat.Client;
+export module Tonic.Chat.Clients;
 //------------------------------------------------------------------------------------------------------------
 export class AClient
 {
@@ -16,16 +16,16 @@ public:
    ~AClient();
    AClient();
 
-   void Server_Init_Connection();
+   void Server_Connect(const char *host, const unsigned short port);
+
+private:
+   void Init_Server_Connection();
    void Message_Receive();
    void Message_Send(const char *msg);
 
-   void Init_Client_Send_MSG_To_Server();
-
-private:
    bool Is_Connected;
-   static constexpr unsigned short PORT = 8080;
-   static constexpr const char *HOST = "127.0.0.1";
+   unsigned short PORT;
+   const char *HOST;
 
    SOCKET Socket_Client = 0;
 };
@@ -35,12 +35,39 @@ AClient::~AClient()
 }
 //------------------------------------------------------------------------------------------------------------
 AClient::AClient()
- : Is_Connected(false)
+ : Is_Connected(false), PORT(0), HOST(0)
 {
 
 }
 //------------------------------------------------------------------------------------------------------------
-void AClient::Server_Init_Connection()
+void AClient::Server_Connect(const char *host, const unsigned short port)
+{
+   int i = 0;
+   const char *str_00 = "Hello World";
+   const char *str_01 = "0";
+   const char *str_arr[2] { str_00, str_01 };
+   
+   PORT = port;
+   HOST = host;
+
+   Init_Server_Connection();
+
+   do
+   {
+      // if connected | send some msg | msg not 0 still conected | say server for disconect | if connected
+      Message_Receive();  // waiting server response | if connected
+
+      if (i < 2)  // change to enum state
+         Message_Send(str_arr[i++]);  // if connected send some msg
+
+   } while (Is_Connected == true);
+
+
+   std::cout << "\nPress Enter to exit..." << std::endl;
+   std::cin.get();
+}
+//------------------------------------------------------------------------------------------------------------
+void AClient::Init_Server_Connection()
 {
    sockaddr_in server_address;
    WSADATA wsa_data;
@@ -112,36 +139,5 @@ void AClient::Message_Send(const char *msg)
       std::cerr << "Failed to send data to server." << std::endl;
    else
       std::cout << "Message sent to server successfully." << std::endl;
-}
-//------------------------------------------------------------------------------------------------------------
-void AClient::Init_Client_Send_MSG_To_Server()
-{
-   int i = 0;
-   const char *str_00 = "Hello World";
-   const char *str_01 = "0";
-   const char *str_arr[2] { str_00, str_01 };
-
-   Server_Init_Connection();
-
-   //Message_Receive();  // waiting server response | if connected
-   //Message_Send("Hello World");  // if connected send some msg
-
-   //Message_Receive();  // waiting server response | if msg not 0 still conected
-   //Message_Send("0");  // if 0 drop connection || say server for disconect
-
-   //Message_Receive();  // waiting server response | if connected
-
-   do
-   {
-      Message_Receive();  // waiting server response | if connected
-
-      if (i < 2)  // change to enum state
-         Message_Send(str_arr[i++]);  // if connected send some msg
-
-   } while (Is_Connected == true);
-
-
-   std::cout << "\nPress Enter to exit..." << std::endl;
-   std::cin.get();
 }
 //------------------------------------------------------------------------------------------------------------

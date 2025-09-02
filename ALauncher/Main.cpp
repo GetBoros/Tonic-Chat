@@ -1,9 +1,5 @@
 ﻿#include "Main.h"
 
-//#include <iostream>
-
-//#include "cppmet.h"  // .dll cmet
-//#include "AdTemp.h"  // .dll dexample
 #include "libtmic.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -20,15 +16,13 @@ void Init_Console()
 //------------------------------------------------------------------------------------------------------------
 int main()
 {
+   wchar_t *msg_from_server = new wchar_t[10] {};
+   SLibtmic_Settings libtmic_settings { .Host = "127.0.0.1", .Port = 8080 };
+
    Init_Console();
+   DLibtmic_API_Func_Client_Test(&libtmic_settings, msg_from_server, 10);
 
-   DLibtmic_API_Func_Client_Test();
-
-   //int result = Add_Numbers(5, 7);
-
-   //Func_From_AdTemp(6, 8);
-   //std::cout << "Result = " << result << std::endl;
-   //std::system("pause");
+   delete[] msg_from_server;
 
    return 0;
 }
