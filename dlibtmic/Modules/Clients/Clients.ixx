@@ -2,6 +2,7 @@
 module;
 #include <iostream>
 #include <vector>
+#include <queue> // Нужно подключить этот заголовок для работы с очередью
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -10,64 +11,37 @@ module;
 //------------------------------------------------------------------------------------------------------------
 export module Tonic.Chat.Clients;
 //------------------------------------------------------------------------------------------------------------
-export class AClient
+export class ATwitch_Chat_Client  // !!! refactoring all class, a lot of shit`s logic
 {
 public:
-   ~AClient();
-   AClient();
+   ~ATwitch_Chat_Client();
+   ATwitch_Chat_Client();
 
-   void Server_Connect(const char *host, const unsigned short port);
+   bool Connect_To_Server(const char *host, const unsigned short port);
+   void Tick(int &index);
+
+   bool Is_Connected;  // temp || use enums
+   std::queue<std::string> Queue_From_Server;
+   std::string Messege_From_Server;  // use vector to store a lot of messages or other arrays
 
 private:
-   void Init_Server_Connection();
    void Message_Receive();
    void Message_Send(const char *msg);
-
-   bool Is_Connected;
-   unsigned short PORT;
-   const char *HOST;
 
    SOCKET Socket_Client = 0;
 };
 //------------------------------------------------------------------------------------------------------------
-AClient::~AClient()
+ATwitch_Chat_Client::~ATwitch_Chat_Client()
 {
 }
 //------------------------------------------------------------------------------------------------------------
-AClient::AClient()
- : Is_Connected(false), PORT(0), HOST(0)
+ATwitch_Chat_Client::ATwitch_Chat_Client()
+ : Is_Connected(false)
 {
 
 }
 //------------------------------------------------------------------------------------------------------------
-void AClient::Server_Connect(const char *host, const unsigned short port)
-{
-   int i = 0;
-   const char *str_00 = "Hello World";
-   const char *str_01 = "0";
-   const char *str_arr[2] { str_00, str_01 };
-   
-   PORT = port;
-   HOST = host;
-
-   Init_Server_Connection();
-
-   do
-   {
-      // if connected | send some msg | msg not 0 still conected | say server for disconect | if connected
-      Message_Receive();  // waiting server response | if connected
-
-      if (i < 2)  // change to enum state
-         Message_Send(str_arr[i++]);  // if connected send some msg
-
-   } while (Is_Connected == true);
-
-
-   std::cout << "\nPress Enter to exit..." << std::endl;
-   std::cin.get();
-}
-//------------------------------------------------------------------------------------------------------------
-void AClient::Init_Server_Connection()
+bool ATwitch_Chat_Client::Connect_To_Server(const char *host, const unsigned short port)
 {
    sockaddr_in server_address;
    WSADATA wsa_data;
@@ -75,7 +49,7 @@ void AClient::Init_Server_Connection()
    if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
    {
       std::cerr << "WSAStartup failed." << std::endl;
-      return;
+      return false;
    }
 
    Socket_Client = socket(AF_INET, SOCK_STREAM, 0);
@@ -84,12 +58,12 @@ void AClient::Init_Server_Connection()
       std::cerr << "Failed to create socket." << std::endl;
       WSACleanup();
 
-      return;
+      return false;
    }
 
    server_address.sin_family = AF_INET;
-   server_address.sin_port = htons(PORT);
-   inet_pton(AF_INET, HOST, &server_address.sin_addr);
+   server_address.sin_port = htons(port);
+   inet_pton(AF_INET, host, &server_address.sin_addr);
 
    if (connect(Socket_Client, (struct sockaddr*)&server_address, sizeof(server_address) ) == SOCKET_ERROR)
    {
@@ -98,42 +72,55 @@ void AClient::Init_Server_Connection()
       closesocket(Socket_Client);
       WSACleanup();
 
-      return;
+      return false;
    }
    std::cout << "Successfully connected to server." << std::endl;
-
+   
+   return true;
 }
 //------------------------------------------------------------------------------------------------------------
-void AClient::Message_Receive()
+void ATwitch_Chat_Client::Tick(int &index)
+{
+   constexpr const char *str_00 = "Still Can work";
+   constexpr const char *str_01 = "0";  // if send to server he try to disconnect client
+   constexpr const char *str_arr[2] { str_00, str_01 };
+   
+   Message_Receive();  // waiting server response | if connected
+
+   if (index < 2)  // change to enum state || temporary, make logic to get some data to close connection from serv
+      Message_Send(str_arr[index++]);  // if connected send some msg
+}
+//------------------------------------------------------------------------------------------------------------
+void ATwitch_Chat_Client::Message_Receive()
 {
    int bytes_received;
-   constexpr int buffer_size = 4096; //4 KB
+   constexpr int buffer_size = 4096;  // 4 Kb
    std::vector<char> buffer(buffer_size);
 
-   bytes_received = recv(Socket_Client, buffer.data(), (int)buffer.size() - 1, 0);
-
+   bytes_received = recv(Socket_Client, buffer.data(), (int)buffer.size() - 1, 0);  // wait until server send something
    if (bytes_received > 0)
    {
       Is_Connected = true;
-      buffer[bytes_received] = '\0'; // Важно для безопасности, чтобы сделать строку
+      buffer[bytes_received] = '\0';  // import to have idea where is string end
+
+      Queue_From_Server.emplace(buffer.data(), bytes_received);
+
       std::cout << "\n--- Server Response ---\n" << buffer.data() << "\n-----------------------\n" << std::endl;
    }
    else
    {
-      std::cout << "\n--- Server Response End ---\n";
-
       Is_Connected = false;
+      
       closesocket(Socket_Client);
       WSACleanup();
+
+      std::cout << "\n--- Server Response End ---\n";
    }
 }
 //------------------------------------------------------------------------------------------------------------
-void AClient::Message_Send(const char *msg)
+void ATwitch_Chat_Client::Message_Send(const char *msg)
 {
-   int send_bytes;
-   //constexpr const char *message_to_server = "0";
-
-   send_bytes = send(Socket_Client, msg, (int)strlen(msg), 0);
+   int send_bytes = send(Socket_Client, msg, (int)strlen(msg), 0);
 
    if (send_bytes == SOCKET_ERROR)
       std::cerr << "Failed to send data to server." << std::endl;

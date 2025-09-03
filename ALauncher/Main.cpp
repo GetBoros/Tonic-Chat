@@ -14,15 +14,33 @@ void Init_Console()
    SetConsoleCP(UTF8_CODE_PAGE);
 }
 //------------------------------------------------------------------------------------------------------------
+void handle_connected()
+{
+   std::cout << "EVENT: Connected!" << std::endl;
+}
+//------------------------------------------------------------------------------------------------------------
+void handle_disconnected(const char* reason)
+{
+   std::cout << "EVENT: Disconnected. Reason: " << reason << std::endl;
+}
+//------------------------------------------------------------------------------------------------------------
+void handle_message(const char *message_fserver)
+{
+   std::cout << message_fserver << std::endl;
+}
+//------------------------------------------------------------------------------------------------------------
 int main()
 {
-   wchar_t *msg_from_server = new wchar_t[10] {};
    SLibtmic_Settings libtmic_settings { .Host = "127.0.0.1", .Port = 8080 };
+   SLibtmic_Callbacks libtmic_callbacks = { 
+      .On_Connected = &handle_connected,
+      .On_Disconnected = &handle_disconnected,
+      .On_Message_Received = &handle_message
+   };
 
    Init_Console();
-   DLibtmic_API_Func_Client_Test(&libtmic_settings, msg_from_server, 10);
-
-   delete[] msg_from_server;
+   
+   DLibtmic_Run_Twitch_Chat_Client(&libtmic_settings, &libtmic_callbacks);
 
    return 0;
 }

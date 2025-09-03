@@ -3,17 +3,27 @@
 //------------------------------------------------------------------------------------------------------------
 import Tonic.Chat.Clients;
 //------------------------------------------------------------------------------------------------------------
-void DLibtmic_API_Func_Client_Test(const SLibtmic_Settings *settings, wchar_t *msg_fserver, size_t msg_fserver_size)
+void DLibtmic_Run_Twitch_Chat_Client(const SLibtmic_Settings *settings, const SLibtmic_Callbacks *callbacks)
 {
    int index = 0;
-    AClient client;
+   ATwitch_Chat_Client twitch_chat_client;
 
-    if (index < msg_fserver_size)
-       msg_fserver[0] = L'A';
+   if (settings == 0)
+      return;
 
-    if (settings == 0)
-       return; // Проверяем, что настройки предоставлены
-    else
-       client.Server_Connect(settings->Host, settings->Port);
+   if (twitch_chat_client.Connect_To_Server(settings->Host, settings->Port) )
+      callbacks->On_Connected();
+   else
+      return callbacks->On_Disconnected("Server error");
+
+   do
+   {
+      twitch_chat_client.Tick(index);
+      
+      // !!!
+      callbacks->On_Message_Received(twitch_chat_client.Queue_From_Server.front().c_str() );  // read msg from server
+      twitch_chat_client.Queue_From_Server.pop();  // delete msg from queue || 
+
+   } while (twitch_chat_client.Is_Connected == true);
 }
 //------------------------------------------------------------------------------------------------------------
