@@ -22,13 +22,13 @@ public:
 
    bool Is_Connected;  // temp || use enums
    std::queue<std::string> Queue_From_Server;
-   std::string Messege_From_Server;  // use vector to store a lot of messages or other arrays
 
 private:
    void Message_Receive();
-   void Message_Send(const char *msg);
+   void Message_Send(const int index);
 
    SOCKET Socket_Client = 0;
+   std::vector<char> Receive_Buffer;  // 4 Kb
 };
 //------------------------------------------------------------------------------------------------------------
 ATwitch_Chat_Client::~ATwitch_Chat_Client()
@@ -36,7 +36,7 @@ ATwitch_Chat_Client::~ATwitch_Chat_Client()
 }
 //------------------------------------------------------------------------------------------------------------
 ATwitch_Chat_Client::ATwitch_Chat_Client()
- : Is_Connected(false)
+ : Is_Connected(false), Receive_Buffer(4096)
 {
 
 }
@@ -81,33 +81,37 @@ bool ATwitch_Chat_Client::Connect_To_Server(const char *host, const unsigned sho
 //------------------------------------------------------------------------------------------------------------
 void ATwitch_Chat_Client::Tick(int &index)
 {
-   constexpr const char *str_00 = "Still Can work";
-   constexpr const char *str_01 = "0";  // if send to server he try to disconnect client
-   constexpr const char *str_arr[2] { str_00, str_01 };
-   
+   constexpr const int max_message = 10;
+   int max_message_receive = 0;
+
    Message_Receive();  // waiting server response | if connected
 
-   if (index < 2)  // change to enum state || temporary, make logic to get some data to close connection from serv
-      Message_Send(str_arr[index++]);  // if connected send some msg
+   if (index == max_message)
+   {
+      max_message_receive++;
+      Is_Connected = false;
+   }
+   
+   Message_Send(max_message_receive);
+
+   index++;
 }
 //------------------------------------------------------------------------------------------------------------
 void ATwitch_Chat_Client::Message_Receive()
 {
    int bytes_received;
-   constexpr int buffer_size = 4096;  // 4 Kb
-   std::vector<char> buffer(buffer_size);
 
-   bytes_received = recv(Socket_Client, buffer.data(), (int)buffer.size() - 1, 0);  // wait until server send something
+   bytes_received = recv(Socket_Client, Receive_Buffer.data(), (int)Receive_Buffer.size() - 1, 0);  // wait until server send something
    if (bytes_received > 0)
    {
       Is_Connected = true;
-      buffer[bytes_received] = '\0';  // import to have idea where is string end
+      Receive_Buffer[bytes_received] = '\0';  // import to have idea where is string end
 
-      Queue_From_Server.emplace(buffer.data(), bytes_received);
+      Queue_From_Server.emplace(Receive_Buffer.data(), bytes_received);
 
-      std::cout << "\n--- Server Response ---\n" << buffer.data() << "\n-----------------------\n" << std::endl;
+      std::cout << "\n--- Server Response ---\n" << Receive_Buffer.data() << "\n-----------------------\n" << std::endl;
    }
-   else
+   else  // if server send 0, end connection
    {
       Is_Connected = false;
       
@@ -118,9 +122,13 @@ void ATwitch_Chat_Client::Message_Receive()
    }
 }
 //------------------------------------------------------------------------------------------------------------
-void ATwitch_Chat_Client::Message_Send(const char *msg)
+void ATwitch_Chat_Client::Message_Send(const int index)
 {
-   int send_bytes = send(Socket_Client, msg, (int)strlen(msg), 0);
+   constexpr const char *str_00 = "Still Can work";
+   constexpr const char *str_01 = "0";  // if send to server he try to disconnect client
+   constexpr const char *str_arr[2] { str_00, str_01 };
+
+   int send_bytes = send(Socket_Client, str_arr[index], (int)strlen(str_arr[index]), 0);
 
    if (send_bytes == SOCKET_ERROR)
       std::cerr << "Failed to send data to server." << std::endl;

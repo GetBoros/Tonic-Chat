@@ -39,7 +39,6 @@ int main()
    };
 
    Init_Console();
-   
    DLibtmic_Run_Twitch_Chat_Client(&libtmic_settings, &libtmic_callbacks);
 
    return 0;
